@@ -1,0 +1,6 @@
+[package]
+name = "premium-friday"
+version = "0.1.0"
+authors = ["k.hamada <k.hamada.1988@gmail.com>"]
+
+[dependencies]
