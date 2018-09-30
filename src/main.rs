@@ -24,11 +24,11 @@ fn ask(year: i32, month: u32, day: u32) -> Option<String> {
 
 #[get("/today")]
 fn today() -> Option<String> {
-    let utc_today = Utc::today().naive_utc();
+    let utc_now = Utc::now();
     let tz_offset = FixedOffset::east(9 * 3600);
-    let today = tz_offset.from_utc_date(&utc_today);
+    let local_now = utc_now.with_timezone(&tz_offset);
 
-    is_premium_friday(today.year(), today.month(), today.day())
+    is_premium_friday(local_now.year(), local_now.month(), local_now.day())
 }
 
 fn is_premium_friday(year: i32, month: u32, day: u32) -> Option<String> {
