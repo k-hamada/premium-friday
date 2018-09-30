@@ -5,7 +5,6 @@ extern crate rocket;
 extern crate chrono;
 extern crate premium_friday;
 
-use rocket::response::Redirect;
 use chrono::prelude::*;
 use premium_friday::*;
 
@@ -20,16 +19,21 @@ fn index() -> &'static str {
 
 #[get("/<year>/<month>/<day>")]
 fn ask(year: i32, month: u32, day: u32) -> Option<String> {
-    let p = PremiumFriday::new().set_start_date(2017, 2, 24);
-    p.is_premium_friday(year, month, day).map(|result| format!("{}", result))
+    is_premium_friday(year, month, day)
 }
 
 #[get("/today")]
-fn today() -> Redirect  {
+fn today() -> Option<String> {
     let utc_today = Utc::today().naive_utc();
     let tz_offset = FixedOffset::east(9 * 3600);
     let today = tz_offset.from_utc_date(&utc_today);
-    Redirect::to(format!("/{}/{}/{}", today.year(), today.month(), today.day()))
+
+    is_premium_friday(today.year(), today.month(), today.day())
+}
+
+fn is_premium_friday(year: i32, month: u32, day: u32) -> Option<String> {
+    let p = PremiumFriday::new().set_start_date(2017, 2, 24);
+    p.is_premium_friday(year, month, day).map(|result| format!("{}", result))
 }
 
 fn main() {
