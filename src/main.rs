@@ -33,7 +33,17 @@ fn today() -> Option<String> {
 
 fn is_premium_friday(year: i32, month: u32, day: u32) -> Option<String> {
     let p = PremiumFriday::new().set_start_date(2017, 2, 24);
-    p.is_premium_friday(year, month, day).map(|result| format!("{}", result))
+    p.is_premium_friday(year, month, day).map(|result| output(year, month, day, result))
+}
+
+fn output(year: i32, month: u32, day: u32, result: bool) -> String {
+    let date = format!("{}/{}/{}", year, month, day);
+
+    if result {
+        format!("{} is PremiumFriday", date)
+    } else {
+        format!("{} is NOT PremiumFriday", date)
+    }
 }
 
 fn main() {
