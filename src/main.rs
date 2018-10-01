@@ -14,6 +14,7 @@ fn index() -> &'static str {
     USAGE
       GET /<year>/<month>/<day>
       GET /today
+      GET /why
     "
 }
 
@@ -46,12 +47,20 @@ fn output(year: i32, month: u32, day: u32, result: bool) -> String {
     }
 }
 
+#[get("/why")]
+fn why() -> &'static str {
+    "
+    I don't like premium friday
+    "
+}
+
 fn main() {
     rocket::ignite()
         .mount("/", routes![
             index,
             ask,
-            today
+            today,
+            why
         ])
         .launch();
 }
