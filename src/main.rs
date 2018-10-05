@@ -3,17 +3,26 @@ extern crate warp;
 extern crate chrono;
 extern crate premium_friday;
 extern crate pretty_env_logger;
+extern crate serde;
+#[macro_use]
+extern crate serde_derive;
 
 use chrono::prelude::*;
 use premium_friday::*;
 use warp::Filter;
 use std::sync::Arc;
 
+#[derive(Serialize, Deserialize, Debug)]
+struct Json {
+    today: bool,
+}
+
 fn index() -> &'static str {
     "
     USAGE
       GET /<year>/<month>/<day>
       GET /today
+      GET /json
     "
 }
 
@@ -31,6 +40,17 @@ fn today(p: Arc<PremiumFriday>) -> Result<String, warp::Rejection> {
 
     p.is_premium_friday(year, month, day)
         .map(|result| output(year, month, day, result))
+        .ok_or(warp::reject::server_error())
+}
+
+fn json(p: Arc<PremiumFriday>) -> Result<impl warp::Reply, warp::Rejection> {
+    let utc_now = Utc::now();
+    let tz_offset = FixedOffset::east(9 * 3600);
+    let local_now = utc_now.with_timezone(&tz_offset);
+    let (year, month, day) = (local_now.year(), local_now.month(), local_now.day());
+
+    p.is_premium_friday(year, month, day)
+        .map(|result| warp::reply::json(&Json { today: result }))
         .ok_or(warp::reject::server_error())
 }
 
@@ -62,10 +82,15 @@ fn main() {
         .and(premium_friday.clone())
         .and_then(today);
 
+    let json = path!("json")
+        .and(premium_friday.clone())
+        .and_then(json);
+
     let routes = warp::get2().and(
         index
             .or(ask)
             .or(today)
+            .or(json)
     );
 
     warp::serve(routes)
