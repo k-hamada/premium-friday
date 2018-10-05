@@ -7,17 +7,17 @@ extern crate serde;
 #[macro_use]
 extern crate serde_derive;
 
-use chrono::prelude::*;
-use premium_friday::*;
 use warp::Filter;
 use std::sync::Arc;
+use chrono::prelude::*;
+use premium_friday::*;
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Debug)]
 struct Json {
     today: bool,
 }
 
-fn index() -> &'static str {
+fn index() -> impl warp::Reply {
     "
     USAGE
       GET /<year>/<month>/<day>
@@ -27,7 +27,7 @@ fn index() -> &'static str {
 }
 
 fn ask(year: i32, month: u32, day: u32, p: Arc<PremiumFriday>)
-    -> Result<String, warp::Rejection>
+    -> Result<impl warp::Reply, warp::Rejection>
 {
     p.is_premium_friday(year, month, day)
         .map(|result| output(year, month, day, result))
@@ -35,7 +35,7 @@ fn ask(year: i32, month: u32, day: u32, p: Arc<PremiumFriday>)
 }
 
 fn today(p: Arc<PremiumFriday>, (year, month, day): (i32, u32, u32))
-    -> Result<String, warp::Rejection>
+    -> Result<impl warp::Reply, warp::Rejection>
 {
     p.is_premium_friday(year, month, day)
         .map(|result| output(year, month, day, result))
@@ -72,7 +72,7 @@ fn main() {
 
     let premium_friday = PremiumFriday::new().set_start_date(2017, 2, 24);
     let premium_friday = Arc::new(premium_friday);
-    let premium_friday = warp::any().map(move || premium_friday.clone());
+    let with_premium_friday = warp::any().map(move || premium_friday.clone());
 
     let with_today = warp::any().map(|| {
         let today = get_today();
@@ -84,16 +84,16 @@ fn main() {
         .map(index);
 
     let ask = path!(i32 / u32 / u32)
-        .and(premium_friday.clone())
+        .and(with_premium_friday.clone())
         .and_then(ask);
 
     let today = path!("today")
-        .and(premium_friday.clone())
+        .and(with_premium_friday.clone())
         .and(with_today)
         .and_then(today);
 
     let json = path!("json")
-        .and(premium_friday.clone())
+        .and(with_premium_friday.clone())
         .and(with_today)
         .and_then(json);
 
