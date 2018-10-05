@@ -26,29 +26,25 @@ fn index() -> &'static str {
     "
 }
 
-fn ask(year: i32, month: u32, day: u32, p: Arc<PremiumFriday>) -> Result<String, warp::Rejection> {
+fn ask(year: i32, month: u32, day: u32, p: Arc<PremiumFriday>)
+    -> Result<String, warp::Rejection>
+{
     p.is_premium_friday(year, month, day)
         .map(|result| output(year, month, day, result))
         .ok_or(warp::reject::bad_request())
 }
 
-fn today(p: Arc<PremiumFriday>) -> Result<String, warp::Rejection> {
-    let utc_now = Utc::now();
-    let tz_offset = FixedOffset::east(9 * 3600);
-    let local_now = utc_now.with_timezone(&tz_offset);
-    let (year, month, day) = (local_now.year(), local_now.month(), local_now.day());
-
+fn today(p: Arc<PremiumFriday>, (year, month, day): (i32, u32, u32))
+    -> Result<String, warp::Rejection>
+{
     p.is_premium_friday(year, month, day)
         .map(|result| output(year, month, day, result))
         .ok_or(warp::reject::server_error())
 }
 
-fn json(p: Arc<PremiumFriday>) -> Result<impl warp::Reply, warp::Rejection> {
-    let utc_now = Utc::now();
-    let tz_offset = FixedOffset::east(9 * 3600);
-    let local_now = utc_now.with_timezone(&tz_offset);
-    let (year, month, day) = (local_now.year(), local_now.month(), local_now.day());
-
+fn json(p: Arc<PremiumFriday>, (year, month, day): (i32, u32, u32))
+    -> Result<impl warp::Reply, warp::Rejection>
+{
     p.is_premium_friday(year, month, day)
         .map(|result| warp::reply::json(&Json { today: result }))
         .ok_or(warp::reject::server_error())
@@ -64,12 +60,25 @@ fn output(year: i32, month: u32, day: u32, result: bool) -> String {
     }
 }
 
+fn get_today() -> DateTime<FixedOffset> {
+    let utc_now = Utc::now();
+    let tz_offset = FixedOffset::east(9 * 3600);
+
+    utc_now.with_timezone(&tz_offset)
+}
+
 fn main() {
     pretty_env_logger::init();
 
     let premium_friday = PremiumFriday::new().set_start_date(2017, 2, 24);
     let premium_friday = Arc::new(premium_friday);
     let premium_friday = warp::any().map(move || premium_friday.clone());
+
+    let with_today = warp::any().map(|| {
+        let today = get_today();
+
+        (today.year(), today.month(), today.day())
+    });
 
     let index = warp::path::index()
         .map(index);
@@ -80,10 +89,12 @@ fn main() {
 
     let today = path!("today")
         .and(premium_friday.clone())
+        .and(with_today)
         .and_then(today);
 
     let json = path!("json")
         .and(premium_friday.clone())
+        .and(with_today)
         .and_then(json);
 
     let routes = warp::get2().and(
