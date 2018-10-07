@@ -5,7 +5,7 @@ authors = ["k.hamada <k.hamada.1988@gmail.com>"]
 
 [dependencies]
 chrono = "0.4.6"
-warp = "0.1.5"
+warp = "0.1.6"
 log = "0.4"
 pretty_env_logger = "0.2"
 serde = "1.0"
