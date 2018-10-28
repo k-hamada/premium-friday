@@ -80,7 +80,7 @@ fn main() {
         (today.year(), today.month(), today.day())
     });
 
-    let index = warp::path::index()
+    let index = warp::path::end()
         .map(index);
 
     let ask = path!(i32 / u32 / u32)
