@@ -27,3 +27,11 @@ fn test_is_premium_friday_in_range() {
     let p = PremiumFriday::new().set_start_date(2017, 2, 24);
     assert!(!p.is_premium_friday(2017, 1, 27).unwrap());
 }
+
+#[test]
+fn test_next_premium_friday() {
+    let p = PremiumFriday::new();
+    assert_eq!(p.next_premium_friday(2017, 2, 24).unwrap(), (2017, 3, 31));
+    let p = PremiumFriday::new().set_end_date(2018, 1, 1);
+    assert!(p.next_premium_friday(2018, 1, 1).is_none());
+}

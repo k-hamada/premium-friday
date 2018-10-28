@@ -29,7 +29,17 @@ impl PremiumFriday {
 
     pub fn is_premium_friday(&self, year: i32, month: u32, day: u32) -> Option<bool> {
         NaiveDate::from_ymd_opt(year, month, day)
-            .map(|date| self.is_friday(date) && self.is_last_weekday(date) && self.is_include_range(date))
+            .map(|date| self.check(date))
+    }
+
+    pub fn next_premium_friday(&self, year: i32, month: u32, day: u32) -> Option<(i32, u32, u32)> {
+        NaiveDate::from_ymd_opt(year, month, day)
+            .and_then(|date| self.get_next_premium_friday(date))
+            .map(|pf| (pf.year(), pf.month(), pf.day()))
+    }
+
+    fn check(&self, date: NaiveDate) -> bool {
+        self.is_friday(date) && self.is_last_weekday(date) && self.is_include_range(date)
     }
 
     fn is_friday(&self, date: NaiveDate) -> bool {
@@ -43,5 +53,16 @@ impl PremiumFriday {
     fn is_include_range(&self, date: NaiveDate) -> bool {
         self.start_date.map_or(true, |start_date| start_date <= date) &&
         self.end_date.map_or(true, |end_date| date < end_date)
+    }
+
+    fn get_next_premium_friday(&self, mut date: NaiveDate) -> Option<NaiveDate> {
+        date = date.succ();
+        while !self.check(date) {
+            if self.end_date.map_or(false, |end_date| date >= end_date) {
+                return None;
+            }
+            date = date.succ();
+        }
+        Some(date)
     }
 }
