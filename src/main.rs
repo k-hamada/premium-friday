@@ -70,7 +70,7 @@ fn get_today() -> DateTime<FixedOffset> {
 fn main() {
     pretty_env_logger::init();
 
-    let premium_friday = PremiumFriday::new().set_start_date(2017, 2, 24);
+    let premium_friday = PremiumFriday::default().set_start_date(2017, 2, 24);
     let premium_friday = Arc::new(premium_friday);
     let with_premium_friday = warp::any().map(move || premium_friday.clone());
 

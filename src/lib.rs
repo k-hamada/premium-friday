@@ -2,19 +2,13 @@ extern crate chrono;
 
 use chrono::{Datelike, Duration, NaiveDate, Weekday};
 
+#[derive(Default)]
 pub struct PremiumFriday {
     start_date: Option<NaiveDate>,
     end_date: Option<NaiveDate>,
 }
 
 impl PremiumFriday {
-    pub fn new() -> Self {
-        PremiumFriday {
-            start_date: None,
-            end_date: None,
-        }
-    }
-
     pub fn set_start_date(self, year: i32, month: u32, day: u32) -> Self {
         let start_date = NaiveDate::from_ymd_opt(year, month, day);
 
