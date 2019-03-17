@@ -1,8 +1,5 @@
 {
-    "public": true,
-    "features": {
-      "cloud": "v2"
-    },
     "name": "premium-friday",
-    "alias": "premium-friday"
+    "alias": "premium-friday",
+    "version": 2
 }
