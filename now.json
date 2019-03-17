@@ -1,5 +1,9 @@
 {
     "name": "premium-friday",
     "alias": "premium-friday",
-    "version": 2
+    "version": 2,
+    "builds": [{
+        "src": "index.rs",
+        "use": "@now/rust"
+    }]
 }
