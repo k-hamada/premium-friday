@@ -2,6 +2,7 @@
 name = "premium-friday"
 version = "0.1.0"
 authors = ["k.hamada <k.hamada.1988@gmail.com>"]
+edition = "2018"
 
 [dependencies]
 http = "0.1"
