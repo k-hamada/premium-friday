@@ -17,5 +17,6 @@
       "src": "/json",
       "dest": "/"
     }
-  ]
+  ],
+  "regions": ["hnd1"]
 }
