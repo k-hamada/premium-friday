@@ -1,9 +1,21 @@
 {
-    "name": "premium-friday",
-    "alias": "premium-friday",
-    "version": 2,
-    "builds": [{
-        "src": "index.rs",
-        "use": "@now/rust"
-    }]
+  "name": "premium-friday",
+  "alias": "premium-friday",
+  "version": 2,
+  "builds": [
+    {
+      "src": "Cargo.toml",
+      "use": "@now/rust"
+    }
+  ],
+  "routes": [
+    {
+      "src": "/today",
+      "dest": "/"
+    },
+    {
+      "src": "/json",
+      "dest": "/"
+    }
+  ]
 }

@@ -1,63 +1,43 @@
-#[macro_use]
-extern crate warp;
-extern crate chrono;
-extern crate premium_friday;
-extern crate pretty_env_logger;
-extern crate serde;
-#[macro_use]
-extern crate serde_derive;
-
-use warp::Filter;
-use std::sync::Arc;
 use chrono::prelude::*;
+use http::{self, StatusCode};
+use now_lambda::{lambda, IntoResponse, Request, Response};
 use premium_friday::*;
+use serde::Serialize;
+use std::error::Error;
 
 #[derive(Serialize, Debug)]
-struct Json {
-    today: bool,
+struct ResultJson {
+    #[serde(with = "fixed_offset_format")]
+    date: DateTime<FixedOffset>,
+    result: bool,
 }
 
-fn index() -> impl warp::Reply {
-    "
-    USAGE
-      GET /<year>/<month>/<day>
-      GET /today
-      GET /json
-    "
+#[derive(Serialize, Debug)]
+struct ErrJson {
+    error: String,
 }
 
-fn ask(year: i32, month: u32, day: u32, p: Arc<PremiumFriday>)
-    -> Result<impl warp::Reply, warp::Rejection>
-{
-    p.is_premium_friday(year, month, day)
-        .map(|result| output(year, month, day, result))
-        .ok_or(warp::reject::bad_request())
-}
+mod fixed_offset_format {
+    use chrono::{DateTime, FixedOffset};
+    use serde::Serializer;
 
-fn today(p: Arc<PremiumFriday>, (year, month, day): (i32, u32, u32))
-    -> Result<impl warp::Reply, warp::Rejection>
-{
-    p.is_premium_friday(year, month, day)
-        .map(|result| output(year, month, day, result))
-        .ok_or(warp::reject::server_error())
-}
-
-fn json(p: Arc<PremiumFriday>, (year, month, day): (i32, u32, u32))
-    -> Result<impl warp::Reply, warp::Rejection>
-{
-    p.is_premium_friday(year, month, day)
-        .map(|result| warp::reply::json(&Json { today: result }))
-        .ok_or(warp::reject::server_error())
-}
-
-fn output(year: i32, month: u32, day: u32, result: bool) -> String {
-    let date = format!("{}/{}/{}", year, month, day);
-
-    if result {
-        format!("{} is PremiumFriday", date)
-    } else {
-        format!("{} is NOT PremiumFriday", date)
+    pub fn serialize<S>(date: &DateTime<FixedOffset>, serializer: S) -> Result<S::Ok, S::Error>
+    where S: Serializer,
+    {
+        serializer.serialize_str(&date.to_rfc3339())
     }
+}
+
+fn handler(request: Request) -> Result<impl IntoResponse, http::Error> {
+    let premium_friday = PremiumFriday::default().set_start_date(2017, 2, 24);
+
+    let (status_code, body) = match request.uri().path() {
+        "/today" => today(premium_friday, get_today()),
+        "/json" => json(premium_friday, get_today()),
+        _ => not_found(),
+    };
+
+    Response::builder().status(status_code).body(body)
 }
 
 fn get_today() -> DateTime<FixedOffset> {
@@ -67,43 +47,38 @@ fn get_today() -> DateTime<FixedOffset> {
     utc_now.with_timezone(&tz_offset)
 }
 
-fn main() {
-    pretty_env_logger::init();
+fn today(premium_friday: PremiumFriday, date: DateTime<FixedOffset>) -> (StatusCode, String) {
+    let result = premium_friday
+        .is_premium_friday(date.year(), date.month(), date.day())
+        .unwrap_or(false);
 
-    let premium_friday = PremiumFriday::default().set_start_date(2017, 2, 24);
-    let premium_friday = Arc::new(premium_friday);
-    let with_premium_friday = warp::any().map(move || premium_friday.clone());
+    (StatusCode::OK, result.to_string())
+}
 
-    let with_today = warp::any().map(|| {
-        let today = get_today();
+fn json(premium_friday: PremiumFriday, date: DateTime<FixedOffset>) -> (StatusCode, String) {
+    let result = premium_friday
+        .is_premium_friday(date.year(), date.month(), date.day())
+        .unwrap_or(false);
+    let value = ResultJson { date, result };
+    let serialized = serde_json::to_string(&value);
 
-        (today.year(), today.month(), today.day())
-    });
+    match serialized {
+        Ok(json) => (StatusCode::OK, json),
+        Err(err) => (StatusCode::INTERNAL_SERVER_ERROR, serde_json::to_string(&ErrJson { error: err.to_string() }).unwrap()),
+    }
+}
 
-    let index = warp::path::index()
-        .map(index);
+fn not_found() -> (StatusCode, String) {
+    let usage = "\
+                 USAGE\
+                 \n    GET /<year>/<month>/<day>\
+                 \n    GET /today\
+                 \n    GET /json\
+                 ";
 
-    let ask = path!(i32 / u32 / u32)
-        .and(with_premium_friday.clone())
-        .and_then(ask);
+    (StatusCode::OK, usage.to_string())
+}
 
-    let today = path!("today")
-        .and(with_premium_friday.clone())
-        .and(with_today)
-        .and_then(today);
-
-    let json = path!("json")
-        .and(with_premium_friday.clone())
-        .and(with_today)
-        .and_then(json);
-
-    let routes = warp::get2().and(
-        index
-            .or(ask)
-            .or(today)
-            .or(json)
-    );
-
-    warp::serve(routes)
-        .run(([0, 0, 0, 0], 80));
+fn main() -> Result<(), Box<dyn Error>> {
+    Ok(lambda!(handler))
 }

@@ -6,7 +6,11 @@ edition = "2018"
 
 [dependencies]
 http = "0.1"
+now_lambda = "*"
 chrono = "0.4.6"
-serde = "1.0"
-serde_derive = "1.0"
+serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
+
+[[bin]]
+name = "index"
+path = "src/main.rs"
