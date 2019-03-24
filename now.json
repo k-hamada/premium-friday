@@ -1,8 +1,22 @@
 {
-    "public": true,
-    "features": {
-      "cloud": "v2"
+  "name": "premium-friday",
+  "alias": "premium-friday",
+  "version": 2,
+  "builds": [
+    {
+      "src": "Cargo.toml",
+      "use": "@now/rust"
+    }
+  ],
+  "routes": [
+    {
+      "src": "/today",
+      "dest": "/"
     },
-    "name": "premium-friday",
-    "alias": "premium-friday"
+    {
+      "src": "/json",
+      "dest": "/"
+    }
+  ],
+  "regions": ["hnd1"]
 }
